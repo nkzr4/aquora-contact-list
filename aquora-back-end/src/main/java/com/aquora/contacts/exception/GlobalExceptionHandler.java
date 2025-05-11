@@ -1,21 +1,17 @@
 package com.aquora.contacts.exception;
 
-import org.springframework.http.HttpHeaders;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @ControllerAdvice
-public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+@Slf4j
+public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorDetails> handleResourceNotFoundException(
@@ -27,6 +23,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 request.getDescription(false));
         
         return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+    }
+    
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorDetails> handleBadRequestException(
+            BadRequestException exception, WebRequest request) {
+        
+        ErrorDetails errorDetails = new ErrorDetails(
+                LocalDateTime.now(),
+                exception.getMessage(),
+                request.getDescription(false));
+        
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
     
     @ExceptionHandler(IllegalArgumentException.class)
@@ -41,33 +49,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
     
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex, HttpHeaders headers, 
-            HttpStatus status, WebRequest request) {
-        
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-        
-        ValidationErrorResponse errorDetails = new ValidationErrorResponse(
-                LocalDateTime.now(),
-                "Erro de validação",
-                request.getDescription(false),
-                errors);
-        
-        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
-    }
-    
+    // Tratamos apenas exceções não mapeadas explicitamente
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDetails> handleGlobalException(
             Exception exception, WebRequest request) {
         
+        log.error("Exceção não tratada", exception);
+        
         ErrorDetails errorDetails = new ErrorDetails(
                 LocalDateTime.now(),
-                exception.getMessage(),
+                "Ocorreu um erro interno no servidor",
                 request.getDescription(false));
         
         return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
