@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/aquora-contact-list.iml" filepath="$PROJECT_DIR$/aquora-contact-list.iml" />
+      <module fileurl="file://$PROJECT_DIR$/aquora-front-end/aquora-front-end.iml" filepath="$PROJECT_DIR$/aquora-front-end/aquora-front-end.iml" />
+    </modules>
+  </component>
+</project>
