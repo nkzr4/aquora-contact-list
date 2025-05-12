@@ -8,9 +8,9 @@ import io.swagger.v3.oas.annotations.info.Info;
 @SpringBootApplication
 @OpenAPIDefinition(
     info = @Info(
-        title = "API de Agenda de Contatos",
+        title = "APIs da Agenda de Contatos",
         version = "1.0",
-        description = "API para gerenciamento de contatos para Aquora"
+        description = "APIs para gerenciamento da agenda de contatos"
     )
 )
 public class ContactsApplication {
