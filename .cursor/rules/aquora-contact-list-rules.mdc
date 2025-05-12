@@ -7,7 +7,5 @@ Avoid duplicate code. Use clear, meaningful names for variables, functions, and 
 
 Follow the Law of Demeter: only call methods of the object itself, its direct fields, received parameters, or locally created objects. Avoid chained calls like obj.getA().getB().doSomething()—wrap them in helper methods.
 
-Start every new feature with a failing test. Write tests before fixing bugs. Only write production code after tests, but ask me first if I want to do it.
-
 
 Always explain what you are doing and why you are doing it.
