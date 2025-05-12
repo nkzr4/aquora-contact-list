@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Search, AlertTriangle, Loader2, CheckCircle2, AlertCircle, X, HelpCircle } from 'lucide-react';
 import ContactCard from './ContactCard';
 import ContactModal from './ContactModal';
 import NotificationModal, { ModalType } from './NotificationModal';

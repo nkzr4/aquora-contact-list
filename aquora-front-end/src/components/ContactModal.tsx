@@ -86,9 +86,9 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
     }
     
     // Verificação adicional para garantir que é realmente uma imagem
-    const reader = new FileReader();
+      const reader = new FileReader();
     
-    reader.onloadend = () => {
+      reader.onloadend = () => {
       const img = new Image();
       
       img.onload = () => {
@@ -111,9 +111,9 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
       showImageError('Erro ao ler o arquivo. Por favor, tente novamente com outra imagem.');
       // Limpar o input de arquivo
       e.target.value = '';
-    };
+      };
     
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
   };
   
   // Função auxiliar para mostrar o erro de imagem

@@ -1,110 +1,53 @@
 # Aquora Contact List - Backend
 
-API RESTful para gerenciamento de contatos, desenvolvida com Spring Boot.
+API RESTful para gerenciamento de contatos desenvolvida com Spring Boot.
 
 ## Visão Geral
 
-O backend da aplicação Aquora Contact List é responsável por:
-
-- Cadastro, atualização, exclusão e consulta de contatos
+Backend responsável por:
+- Gerenciamento completo de contatos (CRUD)
 - Validação de dados
-- Busca por termo (nome, email ou telefone)
-- Armazenamento de fotos de perfil
+- Busca por termo (nome, email, telefone)
+- Armazenamento de imagens de perfil
+- Paginação de resultados
 
-## Tecnologias Utilizadas
+## Tecnologias
 
-- **Java 17**: Linguagem de programação principal
-- **Spring Boot**: Framework para criação de APIs RESTful
-- **Spring Data JPA**: Persistência de dados
-- **PostgreSQL**: Banco de dados relacional
-- **Lombok**: Redução de código boilerplate
-- **Swagger/OpenAPI**: Documentação da API
+- **Java 17**
+- **Spring Boot**
+- **Spring Data JPA**
+- **PostgreSQL**
+- **Lombok**
+- **Swagger/OpenAPI**
 
 ## Arquitetura
 
-A aplicação segue uma arquitetura em camadas:
+Estrutura em camadas:
 
-### 1. Controladores (Controller)
-- Recebem requisições HTTP
-- Delegam processamento para serviços
-- Retornam respostas HTTP apropriadas
+- **Controller**: Gerencia endpoints e requisições HTTP
+- **Service**: Implementa lógica de negócio e validação
+- **Repository**: Interage com o banco de dados
+- **DTOs/Model**: Transferência e persistência de dados
+- **Validators**: Regras específicas de validação
+- **Exception Handler**: Tratamento centralizado de erros
 
-### 2. Serviços (Service)
-- Implementam a lógica de negócio
-- Validam dados
-- Fazem operações no banco de dados via Repository
+## Endpoints API
 
-### 3. Repositórios (Repository)
-- Interagem com o banco de dados
-- Implementam consultas personalizadas
+- `GET /api/contacts?page=0&size=10`: Lista contatos com paginação
+- `GET /api/contacts?search=termo&page=0&size=10`: Busca contatos por termo
+- `GET /api/contacts/{id}`: Busca contato por ID
+- `POST /api/contacts`: Cria novo contato
+- `PUT /api/contacts/{id}`: Atualiza contato existente
+- `DELETE /api/contacts/{id}`: Remove contato
 
-### 4. Modelos e DTOs
-- **Model**: Representam entidades do banco
-- **DTO**: Objetos para transferência de dados
+## Validações
 
-### 5. Validadores
-- Implementam regras específicas de validação
-- Garantem a integridade dos dados
+- Nome: formato com capitalização e preposições corretas
+- Email: formato válido e unicidade
+- Telefone: 10-11 dígitos e unicidade
+- Data de nascimento: não permite datas futuras
+- Foto: validação de formato e tamanho
 
-### 6. Tratamento de Exceções
-- Centralizado com `@ControllerAdvice`
-- Padronização de respostas de erro
+## Execução
 
-## Funcionalidades Principais
-
-### Gerenciamento de Contatos
-- Criar, atualizar, excluir e listar contatos
-- Buscar contatos por termo (nome, email, telefone)
-- Upload de fotos de perfil
-
-### Validações
-- Nome completo com regras específicas (capitalização, preposições)
-- Email válido e único
-- Telefone com 10-11 dígitos e único
-- Data de nascimento não pode ser no futuro
-
-## Boas Práticas Adotadas
-
-1. **Separação de Responsabilidades**:
-   - Camadas bem definidas
-   - Classes com propósito único
-
-2. **Tratamento de Erros**:
-   - Exceções personalizadas
-   - Respostas de erro padronizadas
-
-3. **Segurança**:
-   - Validação de entrada de dados
-   - Sanitização de saída
-
-4. **Logging**:
-   - Registro de eventos importantes
-   - Informações úteis para depuração
-
-5. **Documentação**:
-   - API documentada com Swagger/OpenAPI
-   - Comentários explicando detalhes importantes
-
-## Endpoints da API
-
-A API disponibiliza os seguintes endpoints:
-
-- `GET /api/contacts`: Lista todos os contatos (aceita parâmetro `search`)
-- `GET /api/contacts/{id}`: Busca um contato específico
-- `POST /api/contacts`: Cria um novo contato
-- `PUT /api/contacts/{id}`: Atualiza um contato existente
-- `DELETE /api/contacts/{id}`: Remove um contato
-
-## Estrutura de Diretórios
-
-```
-src/main/java/com/aquora/contacts/
-├── config/        # Configurações (CORS, Multipart)
-├── controller/    # Controladores REST
-├── dto/           # Objetos de Transferência de Dados
-├── exception/     # Exceções personalizadas
-├── model/         # Entidades JPA
-├── repository/    # Interfaces de repositório
-├── service/       # Serviços com lógica de negócio
-└── validator/     # Validadores personalizados
-``` 
+Para instruções de execução, consulte o README principal na raiz do projeto. 
