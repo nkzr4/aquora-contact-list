@@ -37,20 +37,27 @@ public class ContactController {
     public ResponseEntity<List<ContactDTO>> getAllContacts(
             @RequestParam(required = false) String search) {
         
+        log.info("GET /contacts - Listando contatos. Search: {}", search);
+        
         List<ContactDTO> contacts;
         if (search != null && !search.trim().isEmpty()) {
+            log.info("Buscando contatos com termo: '{}'", search);
             contacts = contactService.searchContacts(search);
         } else {
+            log.info("Listando todos os contatos");
             contacts = contactService.getAllContacts();
         }
         
+        log.info("Retornando {} contatos", contacts.size());
         return ResponseEntity.ok(contacts);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Buscar contato por ID", description = "Retorna um contato específico pelo ID")
     public ResponseEntity<ContactDTO> getContactById(@PathVariable Long id) {
+        log.info("GET /contacts/{} - Buscando contato por ID", id);
         ContactDTO contact = contactService.getContactById(id);
+        log.info("Contato encontrado com ID {}: {}", id, contact.getName());
         return ResponseEntity.ok(contact);
     }
 
@@ -66,7 +73,8 @@ public class ContactController {
             @RequestParam("dateOfBirth") String dateOfBirth,
             @RequestParam(value = "profilePicture", required = false) MultipartFile profilePicture) throws IOException {
         
-        log.debug("Recebendo solicitação para criar contato: name={}, email={}, phone={}, dateOfBirth={}, hasPicture={}", 
+        log.info("POST /contacts - Criando novo contato");
+        log.info("Dados recebidos: name={}, email={}, phone={}, dateOfBirth={}, hasPicture={}", 
                 name, email, phone, dateOfBirth, (profilePicture != null && !profilePicture.isEmpty()));
         
         ContactCreateDTO contactDTO = ContactCreateDTO.builder()
@@ -78,9 +86,10 @@ public class ContactController {
         
         try {
             ContactDTO createdContact = contactService.createContact(contactDTO, profilePicture);
+            log.info("Contato criado com sucesso. ID: {}, Nome: {}", createdContact.getId(), createdContact.getName());
             return new ResponseEntity<>(createdContact, HttpStatus.CREATED);
         } catch (Exception e) {
-            log.error("Erro ao criar contato", e);
+            log.error("Erro ao criar contato: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -98,8 +107,9 @@ public class ContactController {
             @RequestParam("dateOfBirth") String dateOfBirth,
             @RequestParam(value = "profilePicture", required = false) MultipartFile profilePicture) throws IOException {
         
-        log.debug("Recebendo solicitação para atualizar contato id={}: name={}, email={}, phone={}, dateOfBirth={}, hasPicture={}", 
-                id, name, email, phone, dateOfBirth, (profilePicture != null && !profilePicture.isEmpty()));
+        log.info("PUT /contacts/{} - Atualizando contato", id);
+        log.info("Dados recebidos: name={}, email={}, phone={}, dateOfBirth={}, hasPicture={}", 
+                name, email, phone, dateOfBirth, (profilePicture != null && !profilePicture.isEmpty()));
         
         ContactCreateDTO contactDTO = ContactCreateDTO.builder()
                 .name(name)
@@ -110,9 +120,10 @@ public class ContactController {
         
         try {
             ContactDTO updatedContact = contactService.updateContact(id, contactDTO, profilePicture);
+            log.info("Contato atualizado com sucesso. ID: {}, Nome: {}", updatedContact.getId(), updatedContact.getName());
             return ResponseEntity.ok(updatedContact);
         } catch (Exception e) {
-            log.error("Erro ao atualizar contato", e);
+            log.error("Erro ao atualizar contato: {}", e.getMessage(), e);
             throw e;
         }
     }
@@ -120,8 +131,9 @@ public class ContactController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Excluir contato", description = "Remove um contato pelo ID")
     public ResponseEntity<Void> deleteContact(@PathVariable Long id) {
-        log.debug("Recebendo solicitação para excluir contato id={}", id);
+        log.info("DELETE /contacts/{} - Excluindo contato", id);
         contactService.deleteContact(id);
+        log.info("Contato excluído com sucesso. ID: {}", id);
         return ResponseEntity.noContent().build();
     }
 } 

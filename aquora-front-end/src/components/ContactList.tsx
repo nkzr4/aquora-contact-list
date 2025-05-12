@@ -20,39 +20,65 @@ const ContactList: React.FC = () => {
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
-      setFilteredContacts(contacts);
+      loadContacts();
     } else {
-      const lowercasedTerm = searchTerm.toLowerCase();
-      const filtered = contacts.filter(contact => 
-        contact.name.toLowerCase().includes(lowercasedTerm) ||
-        contact.email.toLowerCase().includes(lowercasedTerm) ||
-        contact.phone.includes(searchTerm)
-      );
-      setFilteredContacts(filtered);
+      const timeoutId = setTimeout(() => {
+        handleSearch(searchTerm);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [searchTerm, contacts]);
+  }, [searchTerm]);
 
   const loadContacts = async () => {
     try {
+      console.log('Carregando todos os contatos...');
       setLoading(true);
       setError(null);
       const data = await fetchContacts();
+      console.log(`Contatos carregados: ${data.length}`);
       setContacts(data);
       setFilteredContacts(data);
     } catch (err) {
-      setError('Falha ao carregar contatos. Por favor, tente novamente mais tarde.');
-      console.error(err);
+      console.error('Erro ao carregar contatos:', err);
+      if (err instanceof Error) {
+        setError(`Falha ao carregar contatos: ${err.message}`);
+      } else {
+        setError('Falha ao carregar contatos. Por favor, tente novamente mais tarde.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async (term: string) => {
+    try {
+      console.log(`Buscando contatos com termo: "${term}"`);
+      setLoading(true);
+      setError(null);
+      const data = await fetchContacts(term);
+      console.log(`Contatos encontrados: ${data.length}`);
+      setFilteredContacts(data);
+    } catch (err) {
+      console.error('Erro na busca:', err);
+      if (err instanceof Error) {
+        setError(`Falha ao buscar contatos: ${err.message}`);
+      } else {
+        setError('Falha ao buscar contatos. Por favor, tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleAddContact = () => {
+    console.log('Abrindo modal para adicionar novo contato');
     setSelectedContact(null);
     setIsModalOpen(true);
   };
 
   const handleEditContact = (contact: Contact) => {
+    console.log(`Abrindo modal para editar contato: ${contact.id} - ${contact.name}`);
     setSelectedContact(contact);
     setIsModalOpen(true);
   };
@@ -60,11 +86,15 @@ const ContactList: React.FC = () => {
   const handleDeleteContact = async (id: number) => {
     if (window.confirm('Tem certeza que deseja excluir este contato?')) {
       try {
+        console.log(`Excluindo contato ID: ${id}`);
         await deleteContact(id);
+        console.log('Contato excluído com sucesso');
         setContacts(prevContacts => prevContacts.filter(contact => contact.id !== id));
+        setFilteredContacts(prevContacts => prevContacts.filter(contact => contact.id !== id));
       } catch (err) {
+        console.error('Erro ao excluir contato:', err);
         if (err instanceof Error) {
-          alert(err.message);
+          alert(`Erro: ${err.message}`);
         } else {
           alert('Falha ao excluir contato. Por favor, tente novamente.');
         }
@@ -75,18 +105,29 @@ const ContactList: React.FC = () => {
   const handleSaveContact = async (formData: FormData): Promise<void> => {
     try {
       if (selectedContact) {
+        console.log(`Atualizando contato ID: ${selectedContact.id}`);
         const updatedContact = await updateContact(selectedContact.id, formData);
+        console.log('Contato atualizado com sucesso:', updatedContact);
         setContacts(prevContacts => 
           prevContacts.map(contact => 
             contact.id === selectedContact.id ? updatedContact : contact
           )
         );
+        setFilteredContacts(prevContacts => 
+          prevContacts.map(contact => 
+            contact.id === selectedContact.id ? updatedContact : contact
+          )
+        );
       } else {
+        console.log('Criando novo contato');
         const newContact = await createContact(formData);
+        console.log('Contato criado com sucesso:', newContact);
         setContacts(prevContacts => [...prevContacts, newContact]);
+        setFilteredContacts(prevContacts => [...prevContacts, newContact]);
       }
       setIsModalOpen(false);
     } catch (err) {
+      console.error('Erro ao salvar contato:', err);
       if (err instanceof Error) {
         throw new Error(err.message);
       } else {

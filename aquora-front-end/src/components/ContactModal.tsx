@@ -30,11 +30,11 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
       setFormData({
         name: contact.name,
         email: contact.email,
-        phone: contact.phone,
+        phone: formatPhoneNumber(contact.phone),
         dateOfBirth: contact.dateOfBirth.split('T')[0],
         profilePicture: contact.profilePicture,
       });
-      setImagePreview(contact.profilePicture);
+      setImagePreview(contact.profilePicture || '');
     } else {
       setFormData(DEFAULT_FORM_DATA);
       setImagePreview('');
@@ -80,8 +80,68 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
     setApiError(null);
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    // Validação de nome
+    if (!formData.name.trim()) {
+      newErrors.name = 'O nome é obrigatório';
+    } else {
+      const nameParts = formData.name.trim().split(/\s+/);
+      if (nameParts.length < 2) {
+        newErrors.name = 'Informe nome e sobrenome';
+      } else {
+        // Verifica se cada parte do nome (exceto preposições) começa com letra maiúscula
+        const prepositions = ['de', 'da', 'do', 'e'];
+        for (let i = 0; i < nameParts.length; i++) {
+          const part = nameParts[i];
+          if (prepositions.includes(part.toLowerCase())) {
+            if (part !== part.toLowerCase()) {
+              newErrors.name = 'Preposições como "de", "da", "do" e "e" devem ser escritas em minúsculo';
+              break;
+            }
+          } else if (part.charAt(0) !== part.charAt(0).toUpperCase()) {
+            newErrors.name = 'O nome e sobrenome devem começar com letra maiúscula';
+            break;
+          }
+        }
+      }
+    }
+    
+    // Validação de email
+    if (!formData.email.trim()) {
+      newErrors.email = 'O email é obrigatório';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = 'Informe um email válido';
+      }
+    }
+    
+    // Validação de telefone
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (!phoneDigits) {
+      newErrors.phone = 'O telefone é obrigatório';
+    } else if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      newErrors.phone = 'O telefone deve ter 10 ou 11 dígitos';
+    }
+    
+    // Validação de data de nascimento
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = 'A data de nascimento é obrigatória';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsSubmitting(true);
     setApiError(null);
     
@@ -93,8 +153,6 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
     
     if (imageFile) {
       submissionData.append('profilePicture', imageFile);
-    } else if (formData.profilePicture) {
-      submissionData.append('profilePictureUrl', formData.profilePicture);
     }
     
     try {
@@ -253,9 +311,9 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Processando...
+                  Salvando...
                 </>
-              ) : contact ? 'Salvar Alterações' : 'Adicionar Contato'}
+              ) : 'Salvar'}
             </button>
           </div>
         </form>
