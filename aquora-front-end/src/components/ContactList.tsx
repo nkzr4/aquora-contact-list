@@ -2,166 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { UserPlus, Search, AlertTriangle, Loader2, CheckCircle2, AlertCircle, X, HelpCircle } from 'lucide-react';
 import ContactCard from './ContactCard';
 import ContactModal from './ContactModal';
+import NotificationModal, { ModalType } from './NotificationModal';
+import SearchBar from './SearchBar';
+import ContactListHeader from './ContactListHeader';
+import { LoadingState, ErrorState, EmptyState } from './ContactListStates';
 import { Contact } from '../types';
 import { fetchContacts, createContact, updateContact, deleteContact } from '../services/api';
-
-// Tipos para gerenciar os diferentes tipos de modais
-type ModalType = 'none' | 'success' | 'error' | 'confirmDelete' | 'confirmUpdate';
-
-interface NotificationModalProps {
-  type: ModalType;
-  title: string;
-  message: string;
-  onClose: () => void;
-  onConfirm?: () => void;
-  contactToDelete?: { id: number; name: string };
-  contactToUpdate?: { 
-    id: number; 
-    formData: FormData;
-    oldData?: Contact;
-  };
-}
-
-const NotificationModal: React.FC<NotificationModalProps> = ({ 
-  type, 
-  title, 
-  message, 
-  onClose, 
-  onConfirm, 
-  contactToDelete,
-  contactToUpdate
-}) => {
-  if (type === 'none') return null;
-
-  const isConfirmation = type === 'confirmDelete' || type === 'confirmUpdate';
-  
-  // Formatar data para exibição
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  };
-  
-  // Formatar telefone para exibição
-  const formatPhone = (phone: string) => {
-    const numbers = phone.replace(/\D/g, '');
-    if (numbers.length === 11) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7)}`;
-    }
-    return phone;
-  };
-  
-  // Extrair dados do FormData para comparação
-  const getUpdateDetails = () => {
-    if (!contactToUpdate?.formData || !contactToUpdate?.oldData) return null;
-    
-    const formData = contactToUpdate.formData;
-    const oldData = contactToUpdate.oldData;
-    
-    const newName = formData.get('name') as string;
-    const newEmail = formData.get('email') as string;
-    const newPhone = formData.get('phone') as string;
-    const newDateOfBirth = formData.get('dateOfBirth') as string;
-    const hasNewProfilePicture = formData.has('profilePicture');
-    
-    const isNameChanged = newName !== oldData.name;
-    const isEmailChanged = newEmail !== oldData.email;
-    const isPhoneChanged = newPhone !== oldData.phone.replace(/\D/g, '');
-    const isDateChanged = newDateOfBirth !== oldData.dateOfBirth.split('T')[0];
-    
-    return (
-      <div className="space-y-3 my-4 text-sm">
-        <p className="text-slate-500 italic mb-2">Resumo das alterações:</p>
-        
-        {isNameChanged && (
-          <div className="bg-blue-50 p-2 rounded">
-            <p className="font-medium">Nome:</p>
-            <p className="line-through text-slate-500">{oldData.name}</p>
-            <p className="text-blue-600">{newName}</p>
-          </div>
-        )}
-        
-        {isEmailChanged && (
-          <div className="bg-blue-50 p-2 rounded">
-            <p className="font-medium">E-mail:</p>
-            <p className="line-through text-slate-500">{oldData.email}</p>
-            <p className="text-blue-600">{newEmail}</p>
-          </div>
-        )}
-        
-        {isPhoneChanged && (
-          <div className="bg-blue-50 p-2 rounded">
-            <p className="font-medium">Telefone:</p>
-            <p className="line-through text-slate-500">{formatPhone(oldData.phone)}</p>
-            <p className="text-blue-600">{formatPhone(newPhone)}</p>
-          </div>
-        )}
-        
-        {isDateChanged && (
-          <div className="bg-blue-50 p-2 rounded">
-            <p className="font-medium">Data de Nascimento:</p>
-            <p className="line-through text-slate-500">{formatDate(oldData.dateOfBirth)}</p>
-            <p className="text-blue-600">{formatDate(newDateOfBirth)}</p>
-          </div>
-        )}
-        
-        {hasNewProfilePicture && (
-          <div className="bg-blue-50 p-2 rounded">
-            <p className="font-medium">Foto de Perfil:</p>
-            <p className="text-blue-600">Nova imagem selecionada</p>
-          </div>
-        )}
-        
-        {!isNameChanged && !isEmailChanged && !isPhoneChanged && !isDateChanged && !hasNewProfilePicture && (
-          <p className="italic text-slate-500">Nenhuma alteração identificada.</p>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in">
-        <div className="flex items-center mb-4">
-          {type === 'success' && <CheckCircle2 className="text-green-500 mr-3" size={24} />}
-          {type === 'error' && <AlertCircle className="text-red-500 mr-3" size={24} />}
-          {type === 'confirmDelete' && <AlertCircle className="text-red-500 mr-3" size={24} />}
-          {type === 'confirmUpdate' && <HelpCircle className="text-amber-500 mr-3" size={24} />}
-          <h3 className="text-lg font-semibold">{title}</h3>
-        </div>
-        
-        <div className="mb-6">
-          <p className="text-slate-700">{message}</p>
-          
-          {type === 'confirmUpdate' && getUpdateDetails()}
-        </div>
-        
-        <div className={`flex ${isConfirmation ? 'justify-end' : 'justify-center'} space-x-3`}>
-          {isConfirmation && (
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-            >
-              Cancelar
-            </button>
-          )}
-          <button
-            onClick={isConfirmation ? onConfirm : onClose}
-            className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-              type === 'confirmDelete' 
-                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
-                : type === 'confirmUpdate'
-                  ? 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-            } focus:outline-none focus:ring-2 focus:ring-offset-2`}
-          >
-            {isConfirmation ? 'Confirmar' : 'OK'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const ContactList: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -398,87 +244,54 @@ const ContactList: React.FC = () => {
     });
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+  };
+
+  const renderContent = () => {
+    if (loading) {
+      return <LoadingState />;
+    }
+    
+    if (error) {
+      return <ErrorState message={error} onRetry={loadContacts} />;
+    }
+    
+    if (filteredContacts.length === 0) {
+      return (
+        <EmptyState 
+          searchTerm={searchTerm} 
+          onClearSearch={clearSearch} 
+          onAddContact={handleAddContact} 
+        />
+      );
+    }
+    
+    return (
+      <div className="grid grid-cols-1 gap-6">
+        {filteredContacts.map((contact) => (
+          <ContactCard
+            key={contact.id}
+            contact={contact}
+            index={contactIndices.get(contact.id) || 0}
+            onEdit={handleEditContact}
+            onDelete={handleConfirmDelete}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-4 md:mb-0">Agenda de Contatos</h1>
-          <button
-            onClick={handleAddContact}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
-            <UserPlus size={18} className="mr-2" />
-            Novo Contato
-          </button>
-        </div>
-        
-        <div className="relative mb-6">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-slate-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Buscar contatos por nome, e-mail ou telefone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm"
-          />
-        </div>
-        
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 size={48} className="text-blue-500 animate-spin mb-4" />
-            <p className="text-slate-600">Carregando contatos...</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <AlertTriangle size={48} className="text-amber-500 mb-4" />
-            <p className="text-slate-800 font-medium">{error}</p>
-            <button
-              onClick={loadContacts}
-              className="mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Tentar Novamente
-            </button>
-          </div>
-        ) : filteredContacts.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-md p-8 text-center">
-            {searchTerm ? (
-              <>
-                <p className="text-slate-600 mb-2">Nenhum contato encontrado para sua busca.</p>
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="text-blue-600 font-medium hover:text-blue-800"
-                >
-                  Limpar busca
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-slate-600 mb-4">Nenhum contato encontrado. Comece adicionando um novo contato.</p>
-                <button
-                  onClick={handleAddContact}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                >
-                  <UserPlus size={18} className="mr-2" />
-                  Novo Contato
-                </button>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            {filteredContacts.map((contact) => (
-              <ContactCard
-                key={contact.id}
-                contact={contact}
-                index={contactIndices.get(contact.id) || 0}
-                onEdit={handleEditContact}
-                onDelete={handleConfirmDelete}
-              />
-            ))}
-          </div>
-        )}
+        <ContactListHeader onAddContact={handleAddContact} />
+        <SearchBar searchTerm={searchTerm} onSearchChange={handleSearchChange} />
+        {renderContent()}
       </div>
       
       <ContactModal

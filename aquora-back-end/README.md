@@ -1,71 +1,110 @@
-# Aquora Agenda de Contatos - Backend
+# Aquora Contact List - Backend
 
-Backend da aplicação de agenda de contatos desenvolvida como teste prático para vaga de desenvolvedor full stack.
+API RESTful para gerenciamento de contatos, desenvolvida com Spring Boot.
+
+## Visão Geral
+
+O backend da aplicação Aquora Contact List é responsável por:
+
+- Cadastro, atualização, exclusão e consulta de contatos
+- Validação de dados
+- Busca por termo (nome, email ou telefone)
+- Armazenamento de fotos de perfil
 
 ## Tecnologias Utilizadas
 
-- Java 17
-- Spring Boot 3.2.5
-- Spring Data JPA
-- PostgreSQL
-- Docker
-- Swagger/OpenAPI para documentação
-- JUnit e Mockito para testes
+- **Java 17**: Linguagem de programação principal
+- **Spring Boot**: Framework para criação de APIs RESTful
+- **Spring Data JPA**: Persistência de dados
+- **PostgreSQL**: Banco de dados relacional
+- **Lombok**: Redução de código boilerplate
+- **Swagger/OpenAPI**: Documentação da API
 
-## Configuração e Execução
+## Arquitetura
 
-### Pré-requisitos
+A aplicação segue uma arquitetura em camadas:
 
-- JDK 17
-- Maven
-- Docker e Docker Compose
+### 1. Controladores (Controller)
+- Recebem requisições HTTP
+- Delegam processamento para serviços
+- Retornam respostas HTTP apropriadas
 
-### Passos para Execução
+### 2. Serviços (Service)
+- Implementam a lógica de negócio
+- Validam dados
+- Fazem operações no banco de dados via Repository
 
-1. Clone o repositório
-2. Inicialize o banco de dados PostgreSQL usando Docker Compose:
+### 3. Repositórios (Repository)
+- Interagem com o banco de dados
+- Implementam consultas personalizadas
 
-```bash
-cd aquora-back-end
-docker-compose up -d
+### 4. Modelos e DTOs
+- **Model**: Representam entidades do banco
+- **DTO**: Objetos para transferência de dados
+
+### 5. Validadores
+- Implementam regras específicas de validação
+- Garantem a integridade dos dados
+
+### 6. Tratamento de Exceções
+- Centralizado com `@ControllerAdvice`
+- Padronização de respostas de erro
+
+## Funcionalidades Principais
+
+### Gerenciamento de Contatos
+- Criar, atualizar, excluir e listar contatos
+- Buscar contatos por termo (nome, email, telefone)
+- Upload de fotos de perfil
+
+### Validações
+- Nome completo com regras específicas (capitalização, preposições)
+- Email válido e único
+- Telefone com 10-11 dígitos e único
+- Data de nascimento não pode ser no futuro
+
+## Boas Práticas Adotadas
+
+1. **Separação de Responsabilidades**:
+   - Camadas bem definidas
+   - Classes com propósito único
+
+2. **Tratamento de Erros**:
+   - Exceções personalizadas
+   - Respostas de erro padronizadas
+
+3. **Segurança**:
+   - Validação de entrada de dados
+   - Sanitização de saída
+
+4. **Logging**:
+   - Registro de eventos importantes
+   - Informações úteis para depuração
+
+5. **Documentação**:
+   - API documentada com Swagger/OpenAPI
+   - Comentários explicando detalhes importantes
+
+## Endpoints da API
+
+A API disponibiliza os seguintes endpoints:
+
+- `GET /api/contacts`: Lista todos os contatos (aceita parâmetro `search`)
+- `GET /api/contacts/{id}`: Busca um contato específico
+- `POST /api/contacts`: Cria um novo contato
+- `PUT /api/contacts/{id}`: Atualiza um contato existente
+- `DELETE /api/contacts/{id}`: Remove um contato
+
+## Estrutura de Diretórios
+
 ```
-
-3. Execute a aplicação:
-
-```bash
-mvn spring-boot:run
-```
-
-4. A aplicação estará disponível em: http://localhost:8080/api
-5. A documentação Swagger estará disponível em: http://localhost:8080/api/swagger-ui.html
-
-## Estrutura do Projeto
-
-- `model`: Classes de entidade que mapeiam para tabelas no banco de dados
-- `dto`: Classes de transferência de dados
-- `repository`: Interfaces para acesso ao banco de dados
-- `service`: Serviços que contêm a lógica de negócios
-- `controller`: Controladores REST que expõem as APIs
-- `exception`: Classes para tratamento de exceções
-- `validator`: Validadores personalizados
-- `config`: Classes de configuração
-
-## APIs Disponíveis
-
-| Método | URL                   | Descrição                   |
-|--------|----------------------|----------------------------|
-| GET    | /api/contacts        | Listar todos os contatos    |
-| GET    | /api/contacts?search=termo | Buscar contatos por termo |
-| GET    | /api/contacts/{id}   | Obter contato por ID        |
-| POST   | /api/contacts        | Criar novo contato          |
-| PUT    | /api/contacts/{id}   | Atualizar contato existente |
-| DELETE | /api/contacts/{id}   | Excluir contato             |
-
-## Validações
-
-A aplicação implementa várias validações para os dados dos contatos:
-
-- **Nome**: Deve conter pelo menos dois nomes, cada um começando com letra maiúscula (exceto preposições)
-- **Email**: Deve ser um email válido e único
-- **Telefone**: Deve conter entre 10-11 dígitos e ser único
-- **Data de Nascimento**: Obrigatória no formato YYYY-MM-DD 
+src/main/java/com/aquora/contacts/
+├── config/        # Configurações (CORS, Multipart)
+├── controller/    # Controladores REST
+├── dto/           # Objetos de Transferência de Dados
+├── exception/     # Exceções personalizadas
+├── model/         # Entidades JPA
+├── repository/    # Interfaces de repositório
+├── service/       # Serviços com lógica de negócio
+└── validator/     # Validadores personalizados
+``` 

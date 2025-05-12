@@ -1,6 +1,7 @@
 import React from 'react';
 import { Edit, Trash2, User } from 'lucide-react';
 import { Contact } from '../types';
+import { formatDate, formatPhone } from '../utils/formatters';
 
 interface ContactCardProps {
   contact: Contact;
@@ -10,20 +11,6 @@ interface ContactCardProps {
 }
 
 const ContactCard: React.FC<ContactCardProps> = ({ contact, index, onEdit, onDelete }) => {
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR');
-  };
-
-  const formatPhoneNumber = (phone: string) => {
-    const numbers = phone.replace(/\D/g, '');
-    if (numbers.length === 11) {
-      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7)}`;
-    }
-    return phone;
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
       <div className="flex flex-col md:flex-row">
@@ -75,7 +62,7 @@ const ContactCard: React.FC<ContactCardProps> = ({ contact, index, onEdit, onDel
             </div>
             <div className="flex items-center">
               <span className="text-sm font-medium text-slate-600 w-32">Telefone:</span>
-              <span className="text-sm text-slate-800">{formatPhoneNumber(contact.phone)}</span>
+              <span className="text-sm text-slate-800">{formatPhone(contact.phone)}</span>
             </div>
             <div className="flex items-center">
               <span className="text-sm font-medium text-slate-600 w-32">Data de Nasc.:</span>

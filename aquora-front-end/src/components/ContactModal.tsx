@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, User, AlertCircle } from 'lucide-react';
 import { Contact, ContactFormData } from '../types';
+import { formatPhoneInput } from '../utils/formatters';
+import { validateContactForm, validateImage, ValidationErrors } from '../utils/validators';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -26,7 +28,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
   const [formData, setFormData] = useState<ContactFormData>(DEFAULT_FORM_DATA);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   
@@ -44,7 +46,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
       setFormData({
         name: contact.name,
         email: contact.email,
-        phone: formatPhoneNumber(contact.phone),
+        phone: formatPhoneInput(contact.phone),
         dateOfBirth: contact.dateOfBirth.split('T')[0],
         profilePicture: contact.profilePicture,
       });
@@ -57,14 +59,6 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
     setErrors({});
     setApiError(null);
   }, [contact, isOpen]);
-
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/\D/g, '');
-    if (numbers.length <= 2) return numbers;
-    if (numbers.length <= 3) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
-    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3)}`;
-    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-  };
 
   // Função para validar o tipo de arquivo
   const isValidImageType = (file: File): boolean => {
@@ -82,17 +76,10 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Verificar tamanho do arquivo
-    if (file.size > MAX_IMAGE_SIZE) {
-      showImageError(`O arquivo é muito grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). O tamanho máximo permitido é 2MB.`);
-      // Limpar o input de arquivo
-      e.target.value = '';
-      return;
-    }
-    
-    // Verificação inicial de tipo e extensão
-    if (!isValidImageType(file)) {
-      showImageError('O arquivo selecionado não é uma imagem válida. Por favor, selecione um arquivo nos formatos: JPG, PNG, GIF ou WebP.');
+    // Validar a imagem usando a função de validação
+    const error = validateImage(file, ACCEPTED_IMAGE_TYPES, ACCEPTED_IMAGE_EXTENSIONS, MAX_IMAGE_SIZE);
+    if (error) {
+      showImageError(error);
       // Limpar o input de arquivo
       e.target.value = '';
       return;
@@ -141,7 +128,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
     const { name, value } = e.target;
     
     if (name === 'phone') {
-      const formattedPhone = formatPhoneNumber(value);
+      const formattedPhone = formatPhoneInput(value);
       if (value.replace(/\D/g, '').length <= 11) {
         setFormData(prev => ({ ...prev, [name]: formattedPhone }));
       }
@@ -154,58 +141,9 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    
-    // Validação de nome
-    if (!formData.name.trim()) {
-      newErrors.name = 'O nome é obrigatório';
-    } else {
-      const nameParts = formData.name.trim().split(/\s+/);
-      if (nameParts.length < 2) {
-        newErrors.name = 'Informe nome e sobrenome';
-      } else {
-        // Verifica se cada parte do nome (exceto preposições) começa com letra maiúscula
-        const prepositions = ['de', 'da', 'do', 'e'];
-        for (let i = 0; i < nameParts.length; i++) {
-          const part = nameParts[i];
-          if (prepositions.includes(part.toLowerCase())) {
-            if (part !== part.toLowerCase()) {
-              newErrors.name = 'Preposições como "de", "da", "do" e "e" devem ser escritas em minúsculo';
-              break;
-            }
-          } else if (part.charAt(0) !== part.charAt(0).toUpperCase()) {
-            newErrors.name = 'O nome e sobrenome devem começar com letra maiúscula';
-            break;
-          }
-        }
-      }
-    }
-    
-    // Validação de email
-    if (!formData.email.trim()) {
-      newErrors.email = 'O email é obrigatório';
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        newErrors.email = 'Informe um email válido';
-      }
-    }
-    
-    // Validação de telefone
-    const phoneDigits = formData.phone.replace(/\D/g, '');
-    if (!phoneDigits) {
-      newErrors.phone = 'O telefone é obrigatório';
-    } else if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-      newErrors.phone = 'O telefone deve ter 10 ou 11 dígitos';
-    }
-    
-    // Validação de data de nascimento
-    if (!formData.dateOfBirth) {
-      newErrors.dateOfBirth = 'A data de nascimento é obrigatória';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const validationErrors = validateContactForm(formData);
+    setErrors(validationErrors);
+    return Object.keys(validationErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

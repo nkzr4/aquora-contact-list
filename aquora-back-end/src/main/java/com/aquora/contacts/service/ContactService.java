@@ -163,6 +163,16 @@ public class ContactService {
         if (contactDTO.getDateOfBirth() == null || contactDTO.getDateOfBirth().trim().isEmpty()) {
             throw new IllegalArgumentException("A data de nascimento é obrigatória");
         }
+        
+        // Verificar se a data de nascimento é no futuro
+        try {
+            LocalDate birthDate = LocalDate.parse(contactDTO.getDateOfBirth(), DATE_FORMATTER);
+            if (birthDate.isAfter(LocalDate.now())) {
+                throw new IllegalArgumentException("A data de nascimento não pode ser no futuro");
+            }
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Formato de data inválido. Use o formato YYYY-MM-DD");
+        }
     }
 
     private void validateUniqueFields(String email, String phone, Long id) {
