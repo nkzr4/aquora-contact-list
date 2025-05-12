@@ -1,10 +1,12 @@
 # Aquora Contact List
 
-Aplicação completa de agenda de contatos com backend Java Spring Boot e frontend React.
+Aplicação simples de uma agenda de contatos com backend Java Spring Boot e frontend React.
+
+Foi desenvolvida como objeto de estudo, a partir de um teste prático da empresa AQUORA para uma vaga de estágio de desenvolvedor full-stack.
 
 ## Visão Geral
 
-Aquora Contact List é uma aplicação moderna para gerenciamento de contatos que permite salvar e organizar informações como nome, e-mail, telefone, data de nascimento e foto.
+Aquora Contact List é uma aplicação para gerenciamento de contatos que permite salvar e organizar informações como nome, e-mail, telefone, data de nascimento e foto.
 
 ## Funcionalidades
 
@@ -23,7 +25,7 @@ Aquora Contact List é uma aplicação moderna para gerenciamento de contatos qu
   - Resultados em tempo real
   - Navegação entre páginas de resultados
 
-- **Validação Avançada**
+- **Validações**
   - Nome: regras específicas de capitalização
   - E-mail/telefone: unicidade e formato
   - Data: prevenção de datas futuras
