@@ -2,12 +2,17 @@ package com.aquora.contacts.service;
 
 import com.aquora.contacts.dto.ContactCreateDTO;
 import com.aquora.contacts.dto.ContactDTO;
+import com.aquora.contacts.dto.PagedResponse;
 import com.aquora.contacts.exception.ResourceNotFoundException;
 import com.aquora.contacts.model.Contact;
 import com.aquora.contacts.repository.ContactRepository;
 import com.aquora.contacts.validator.NameValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +42,24 @@ public class ContactService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
+    
+    public PagedResponse<ContactDTO> getAllContactsPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        Page<Contact> contactPage = contactRepository.findAll(pageable);
+        
+        List<ContactDTO> content = contactPage.getContent().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        
+        return PagedResponse.<ContactDTO>builder()
+                .content(content)
+                .pageNumber(contactPage.getNumber())
+                .pageSize(contactPage.getSize())
+                .totalElements(contactPage.getTotalElements())
+                .totalPages(contactPage.getTotalPages())
+                .last(contactPage.isLast())
+                .build();
+    }
 
     public List<ContactDTO> searchContacts(String searchTerm) {
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
@@ -46,6 +69,30 @@ public class ContactService {
         return contactRepository.findBySearchTerm(searchTerm).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+    
+    public PagedResponse<ContactDTO> searchContactsPaged(String searchTerm, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        
+        Page<Contact> contactPage;
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            contactPage = contactRepository.findAll(pageable);
+        } else {
+            contactPage = contactRepository.findBySearchTermPaged(searchTerm, pageable);
+        }
+        
+        List<ContactDTO> content = contactPage.getContent().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        
+        return PagedResponse.<ContactDTO>builder()
+                .content(content)
+                .pageNumber(contactPage.getNumber())
+                .pageSize(contactPage.getSize())
+                .totalElements(contactPage.getTotalElements())
+                .totalPages(contactPage.getTotalPages())
+                .last(contactPage.isLast())
+                .build();
     }
 
     public ContactDTO getContactById(Long id) {

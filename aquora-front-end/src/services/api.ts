@@ -1,5 +1,7 @@
+import { Contact, PagedResponse } from '../types';
+
 // Serviço de API para gerenciamento de contatos
-const API_URL = 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 // Configuração padrão para requisições fetch
 const defaultOptions = {
@@ -10,10 +12,16 @@ const defaultOptions = {
   mode: 'cors' as RequestMode
 };
 
-export const fetchContacts = async (searchTerm?: string): Promise<any[]> => {
-  const url = searchTerm 
-    ? `${API_URL}/contacts?search=${encodeURIComponent(searchTerm)}` 
-    : `${API_URL}/contacts`;
+export const fetchContacts = async (
+  searchTerm?: string, 
+  page: number = 0, 
+  size: number = 10
+): Promise<PagedResponse<Contact>> => {
+  let url = `${API_URL}/contacts?page=${page}&size=${size}`;
+  
+  if (searchTerm) {
+    url += `&search=${encodeURIComponent(searchTerm)}`;
+  }
   
   try {
     const response = await fetch(url, {
@@ -33,7 +41,7 @@ export const fetchContacts = async (searchTerm?: string): Promise<any[]> => {
   }
 };
 
-export const getContact = async (id: number): Promise<any> => {
+export const getContact = async (id: number): Promise<Contact> => {
   try {
     const response = await fetch(`${API_URL}/contacts/${id}`, {
       ...defaultOptions,
@@ -51,7 +59,7 @@ export const getContact = async (id: number): Promise<any> => {
   }
 };
 
-export const createContact = async (contactData: FormData): Promise<any> => {
+export const createContact = async (contactData: FormData): Promise<Contact> => {
   try {
     const response = await fetch(`${API_URL}/contacts`, {
       method: 'POST',
@@ -70,7 +78,7 @@ export const createContact = async (contactData: FormData): Promise<any> => {
   }
 };
 
-export const updateContact = async (id: number, contactData: FormData): Promise<any> => {
+export const updateContact = async (id: number, contactData: FormData): Promise<Contact> => {
   try {
     const response = await fetch(`${API_URL}/contacts/${id}`, {
       method: 'PUT',

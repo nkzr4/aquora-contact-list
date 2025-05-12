@@ -27,9 +27,10 @@ Aquora Contact List é uma aplicação moderna para gerenciamento de contatos pe
 
 - **Interface Intuitiva**
   - Layout responsivo e moderno
-  - Temas de cores consistentes
+  - Temas de cores consistentes (light/dark mode)
   - Feedback visual para todas as ações
   - Modais para confirmação de ações importantes
+  - Paginação para listas longas
 
 ## Arquitetura
 
@@ -70,6 +71,57 @@ Implementa uma interface de usuário com:
 - Lucide React (ícones)
 - Vite (build)
 
+## Como Executar a Aplicação
+
+### Requisitos
+- Docker e Docker Compose
+
+### Instalação e Execução
+
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/aquora-contact-list.git
+   cd aquora-contact-list
+   ```
+
+2. Inicie a aplicação usando Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Acesse a aplicação:
+   - Frontend: http://localhost:5173
+   - API Backend: http://localhost:8080/api
+   - Swagger UI: http://localhost:8080/api/swagger-ui.html
+
+### Parando a Aplicação
+
+Para parar todos os contêineres:
+```bash
+docker-compose down
+```
+
+Para parar e remover volumes (apaga o banco de dados):
+```bash
+docker-compose down -v
+```
+
+## Estrutura do Projeto
+
+```
+aquora-contact-list/
+├── aquora-back-end/         # Código do backend
+│   ├── src/                 # Código fonte
+│   ├── Dockerfile           # Configuração Docker
+│   └── pom.xml              # Dependências do Maven
+├── aquora-front-end/        # Código do frontend
+│   ├── src/                 # Código fonte
+│   ├── Dockerfile           # Configuração Docker
+│   ├── nginx.conf           # Configuração do Nginx
+│   └── package.json         # Dependências do npm
+└── docker-compose.yml       # Orquestração dos serviços
+```
+
 ## Diferenciais
 
 ### Validação Avançada
@@ -82,6 +134,7 @@ Implementa uma interface de usuário com:
 - Tratamento abrangente de erros
 - Modais informativos para confirmações
 - Animações sutis para transições
+- Tema escuro/claro
 
 ### Segurança
 - Validação de dados no cliente e servidor

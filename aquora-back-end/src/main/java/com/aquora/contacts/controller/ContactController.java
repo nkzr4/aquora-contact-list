@@ -2,6 +2,7 @@ package com.aquora.contacts.controller;
 
 import com.aquora.contacts.dto.ContactCreateDTO;
 import com.aquora.contacts.dto.ContactDTO;
+import com.aquora.contacts.dto.PagedResponse;
 import com.aquora.contacts.service.ContactService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,6 +27,8 @@ import java.util.List;
 public class ContactController {
 
     private final ContactService contactService;
+    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int DEFAULT_PAGE_NUMBER = 0;
 
     @Autowired
     public ContactController(ContactService contactService) {
@@ -33,23 +36,35 @@ public class ContactController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todos os contatos", description = "Retorna uma lista de todos os contatos cadastrados")
-    public ResponseEntity<List<ContactDTO>> getAllContacts(
-            @RequestParam(required = false) String search) {
+    @Operation(summary = "Listar contatos", description = "Retorna uma lista paginada de contatos")
+    public ResponseEntity<?> getContacts(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         
-        log.info("GET /contacts - Listando contatos. Search: {}", search);
+        log.info("GET /contacts - Listando contatos. Search: {}, Page: {}, Size: {}", search, page, size);
         
-        List<ContactDTO> contacts;
-        if (search != null && !search.trim().isEmpty()) {
-            log.info("Buscando contatos com termo: '{}'", search);
-            contacts = contactService.searchContacts(search);
-        } else {
-            log.info("Listando todos os contatos");
-            contacts = contactService.getAllContacts();
+        if (page < 0) {
+            page = DEFAULT_PAGE_NUMBER;
         }
         
-        log.info("Retornando {} contatos", contacts.size());
-        return ResponseEntity.ok(contacts);
+        if (size <= 0) {
+            size = DEFAULT_PAGE_SIZE;
+        }
+        
+        PagedResponse<ContactDTO> response;
+        if (search != null && !search.trim().isEmpty()) {
+            log.info("Buscando contatos com termo: '{}'", search);
+            response = contactService.searchContactsPaged(search, page, size);
+        } else {
+            log.info("Listando todos os contatos");
+            response = contactService.getAllContactsPaged(page, size);
+        }
+        
+        log.info("Retornando {} contatos (página {} de {})", 
+                response.getContent().size(), response.getPageNumber() + 1, response.getTotalPages());
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

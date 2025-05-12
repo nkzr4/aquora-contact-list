@@ -22,7 +22,6 @@ export const validateName = (name: string): string | null => {
     return 'Informe nome e sobrenome';
   }
 
-  // Verifica se cada parte do nome (exceto preposições) começa com letra maiúscula
   const prepositions = ['de', 'da', 'do', 'e'];
   for (let i = 0; i < nameParts.length; i++) {
     const part = nameParts[i];
@@ -82,7 +81,6 @@ export const validateDateOfBirth = (date: string): string | null => {
   const selectedDate = new Date(date);
   const today = new Date();
   
-  // Remove a parte de horas, minutos e segundos para comparação justa
   today.setHours(0, 0, 0, 0);
   
   if (selectedDate > today) {
@@ -103,19 +101,16 @@ export const validateImage = (
   file: File, 
   acceptedTypes: string[] = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'],
   acceptedExtensions: string[] = ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
-  maxSize: number = 2 * 1024 * 1024 // 2MB
+  maxSize: number = 2 * 1024 * 1024
 ): string | null => {
-  // Verificar tamanho
   if (file.size > maxSize) {
     return `O arquivo é muito grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). O tamanho máximo permitido é ${(maxSize / (1024 * 1024))}MB.`;
   }
   
-  // Verificar tipo MIME
   if (!acceptedTypes.includes(file.type)) {
     return 'O tipo de arquivo não é suportado. Por favor, selecione uma imagem válida.';
   }
   
-  // Verificar extensão
   const fileName = file.name.toLowerCase();
   const hasValidExtension = acceptedExtensions.some(ext => fileName.endsWith(ext));
   if (!hasValidExtension) {

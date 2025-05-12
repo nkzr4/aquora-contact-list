@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  postgres:
+    image: postgres:14-alpine
+    container_name: aquora-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: aquora
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aquora-network
+
+  # Backend Spring Boot
+  backend:
+    build: 
+      context: ./aquora-back-end
+      dockerfile: Dockerfile
+    container_name: aquora-backend
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aquora
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    ports:
+      - "8080:8080"
+    networks:
+      - aquora-network
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./aquora-front-end
+      dockerfile: Dockerfile
+    container_name: aquora-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8080/api
+    networks:
+      - aquora-network
+
+networks:
+  aquora-network:
+    driver: bridge
+
+volumes:
+  postgres_data: 

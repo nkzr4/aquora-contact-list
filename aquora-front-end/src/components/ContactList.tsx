@@ -6,16 +6,24 @@ import NotificationModal, { ModalType } from './NotificationModal';
 import SearchBar from './SearchBar';
 import ContactListHeader from './ContactListHeader';
 import { LoadingState, ErrorState, EmptyState } from './ContactListStates';
-import { Contact } from '../types';
+import Pagination from './Pagination';
+import { Contact, PagedResponse } from '../types';
 import { fetchContacts, createContact, updateContact, deleteContact } from '../services/api';
 
 const ContactList: React.FC = () => {
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
+  const [contactsResponse, setContactsResponse] = useState<PagedResponse<Contact>>({
+    content: [],
+    pageNumber: 0,
+    pageSize: 10,
+    totalElements: 0,
+    totalPages: 0,
+    last: true
+  });
   const [contactIndices, setContactIndices] = useState<Map<number, number>>(new Map());
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -38,17 +46,21 @@ const ContactList: React.FC = () => {
 
   useEffect(() => {
     loadContacts();
-  }, []);
+  }, [currentPage]);
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      loadContacts();
+    if (currentPage !== 0) {
+      setCurrentPage(0);
     } else {
-      const timeoutId = setTimeout(() => {
-        handleSearch(searchTerm);
-      }, 500);
-      
-      return () => clearTimeout(timeoutId);
+      if (searchTerm.trim() === '') {
+        loadContacts();
+      } else {
+        const timeoutId = setTimeout(() => {
+          handleSearch(searchTerm);
+        }, 500);
+        
+        return () => clearTimeout(timeoutId);
+      }
     }
   }, [searchTerm]);
 
@@ -56,15 +68,16 @@ const ContactList: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchContacts();
-      setContacts(data);
-      setFilteredContacts(data);
+      const response = await fetchContacts(searchTerm, currentPage, 10);
+      setContactsResponse(response);
       
-      // Criar mapa de índices para os contatos
       const indices = new Map<number, number>();
-      data.forEach((contact, index) => {
-        indices.set(contact.id, index + 1);
+      const startIndex = currentPage * 10;
+      
+      response.content.forEach((contact, index) => {
+        indices.set(contact.id, startIndex + index + 1);
       });
+      
       setContactIndices(indices);
     } catch (err) {
       if (err instanceof Error) {
@@ -81,8 +94,17 @@ const ContactList: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchContacts(term);
-      setFilteredContacts(data);
+      const response = await fetchContacts(term, currentPage, 10);
+      setContactsResponse(response);
+      
+      const indices = new Map<number, number>();
+      const startIndex = currentPage * 10;
+      
+      response.content.forEach((contact, index) => {
+        indices.set(contact.id, startIndex + index + 1);
+      });
+      
+      setContactIndices(indices);
     } catch (err) {
       if (err instanceof Error) {
         setError(`Falha ao buscar contatos: ${err.message}`);
@@ -92,6 +114,10 @@ const ContactList: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleAddContact = () => {
@@ -121,27 +147,14 @@ const ContactList: React.FC = () => {
     try {
       await deleteContact(id);
       
-      // Atualizar contatos e mapa de índices
-      const updatedContacts = contacts.filter(contact => contact.id !== id);
-      setContacts(updatedContacts);
-      setFilteredContacts(prevContacts => prevContacts.filter(contact => contact.id !== id));
-      
-      // Recalcular os índices após a exclusão
-      const newIndices = new Map<number, number>();
-      updatedContacts.forEach((contact, index) => {
-        newIndices.set(contact.id, index + 1);
-      });
-      setContactIndices(newIndices);
-      
-      // Mostrar notificação de sucesso após excluir
       setNotificationModal({
         type: 'success',
         title: 'Contato excluído',
         message: `O contato "${name}" foi excluído com sucesso.`
       });
       
+      loadContacts();
     } catch (err) {
-      // Mostrar notificação de erro
       setNotificationModal({
         type: 'error',
         title: 'Erro ao excluir',
@@ -155,7 +168,6 @@ const ContactList: React.FC = () => {
   const handleSaveContact = async (formData: FormData): Promise<void> => {
     try {
       if (selectedContact) {
-        // Para edição, mostrar modal de confirmação antes de salvar
         setNotificationModal({
           type: 'confirmUpdate',
           title: 'Confirmar alterações',
@@ -167,30 +179,20 @@ const ContactList: React.FC = () => {
           }
         });
       } else {
-        // Para criação, salvar diretamente
         const newContact = await createContact(formData);
-        
-        // Atualizar contatos e adicionar novo índice
-        const updatedContacts = [...contacts, newContact];
-        setContacts(updatedContacts);
-        setFilteredContacts(prevContacts => [...prevContacts, newContact]);
-        
-        // Adicionar o novo contato ao mapa de índices
-        const newIndices = new Map(contactIndices);
-        newIndices.set(newContact.id, updatedContacts.length);
-        setContactIndices(newIndices);
         
         setIsModalOpen(false);
         
-        // Mostrar notificação de sucesso após criar
         setNotificationModal({
           type: 'success',
           title: 'Contato adicionado',
           message: `O contato "${newContact.name}" foi adicionado com sucesso.`
         });
+        
+        loadContacts();
       }
     } catch (err) {
-      throw err; // Deixar o componente ContactModal lidar com este erro
+      throw err;
     }
   };
 
@@ -200,32 +202,19 @@ const ContactList: React.FC = () => {
     const { id, formData } = notificationModal.contactToUpdate;
     
     try {
-      const updatedContact = await updateContact(id, formData);
-      
-      // Atualizar a lista de contatos mantendo os índices
-      setContacts(prevContacts => 
-        prevContacts.map(contact => 
-          contact.id === id ? updatedContact : contact
-        )
-      );
-      
-      setFilteredContacts(prevContacts => 
-        prevContacts.map(contact => 
-          contact.id === id ? updatedContact : contact
-        )
-      );
+      await updateContact(id, formData);
       
       setIsModalOpen(false);
       
-      // Mostrar notificação de sucesso após atualizar
       setNotificationModal({
         type: 'success',
         title: 'Contato atualizado',
-        message: `O contato "${updatedContact.name}" foi atualizado com sucesso.`
+        message: 'O contato foi atualizado com sucesso.'
       });
       
+      loadContacts();
+      
     } catch (err) {
-      // Mostrar notificação de erro
       setNotificationModal({
         type: 'error',
         title: 'Erro ao atualizar',
@@ -250,6 +239,7 @@ const ContactList: React.FC = () => {
 
   const clearSearch = () => {
     setSearchTerm('');
+    setCurrentPage(0);
   };
 
   const renderContent = () => {
@@ -261,7 +251,7 @@ const ContactList: React.FC = () => {
       return <ErrorState message={error} onRetry={loadContacts} />;
     }
     
-    if (filteredContacts.length === 0) {
+    if (contactsResponse.content.length === 0) {
       return (
         <EmptyState 
           searchTerm={searchTerm} 
@@ -272,22 +262,29 @@ const ContactList: React.FC = () => {
     }
     
     return (
-      <div className="grid grid-cols-1 gap-6">
-        {filteredContacts.map((contact) => (
-          <ContactCard
-            key={contact.id}
-            contact={contact}
-            index={contactIndices.get(contact.id) || 0}
-            onEdit={handleEditContact}
-            onDelete={handleConfirmDelete}
-          />
-        ))}
-      </div>
+      <>
+        <div className="grid grid-cols-1 gap-6">
+          {contactsResponse.content.map((contact) => (
+            <ContactCard
+              key={contact.id}
+              contact={contact}
+              index={contactIndices.get(contact.id) || 0}
+              onEdit={handleEditContact}
+              onDelete={handleConfirmDelete}
+            />
+          ))}
+        </div>
+        <Pagination 
+          currentPage={contactsResponse.pageNumber} 
+          totalPages={contactsResponse.totalPages} 
+          onPageChange={handlePageChange}
+        />
+      </>
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <ContactListHeader onAddContact={handleAddContact} />
         <SearchBar searchTerm={searchTerm} onSearchChange={handleSearchChange} />
