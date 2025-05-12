@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, User } from 'lucide-react';
+import { X, Upload, User, AlertCircle } from 'lucide-react';
 import { Contact, ContactFormData } from '../types';
 
 interface ContactModalProps {
@@ -17,6 +17,11 @@ const DEFAULT_FORM_DATA: ContactFormData = {
   profilePicture: '',
 };
 
+// Tipos de imagem aceitos
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+const ACCEPTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB em bytes
+
 const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, onSave }) => {
   const [formData, setFormData] = useState<ContactFormData>(DEFAULT_FORM_DATA);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -24,6 +29,15 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  
+  // Estado para o modal de erro de imagem
+  const [imageErrorModal, setImageErrorModal] = useState<{
+    isOpen: boolean;
+    message: string;
+  }>({
+    isOpen: false,
+    message: ''
+  });
 
   useEffect(() => {
     if (contact) {
@@ -52,16 +66,75 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
+  // Função para validar o tipo de arquivo
+  const isValidImageType = (file: File): boolean => {
+    // Verificar o MIME type
+    const isValidMimeType = ACCEPTED_IMAGE_TYPES.includes(file.type);
+    
+    // Verificar a extensão do arquivo
+    const fileName = file.name.toLowerCase();
+    const isValidExtension = ACCEPTED_IMAGE_EXTENSIONS.some(ext => fileName.endsWith(ext));
+    
+    return isValidMimeType && isValidExtension;
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    // Verificar tamanho do arquivo
+    if (file.size > MAX_IMAGE_SIZE) {
+      showImageError(`O arquivo é muito grande (${(file.size / (1024 * 1024)).toFixed(2)}MB). O tamanho máximo permitido é 2MB.`);
+      // Limpar o input de arquivo
+      e.target.value = '';
+      return;
     }
+    
+    // Verificação inicial de tipo e extensão
+    if (!isValidImageType(file)) {
+      showImageError('O arquivo selecionado não é uma imagem válida. Por favor, selecione um arquivo nos formatos: JPG, PNG, GIF ou WebP.');
+      // Limpar o input de arquivo
+      e.target.value = '';
+      return;
+    }
+    
+    // Verificação adicional para garantir que é realmente uma imagem
+    const reader = new FileReader();
+    
+    reader.onloadend = () => {
+      const img = new Image();
+      
+      img.onload = () => {
+        // A imagem carregou corretamente
+        setImagePreview(reader.result as string);
+        setImageFile(file);
+      };
+      
+      img.onerror = () => {
+        // Falha ao carregar a imagem
+        showImageError('O arquivo selecionado não pôde ser carregado como uma imagem válida. Por favor, escolha outra imagem.');
+        // Limpar o input de arquivo
+        e.target.value = '';
+      };
+      
+      img.src = reader.result as string;
+    };
+    
+    reader.onerror = () => {
+      showImageError('Erro ao ler o arquivo. Por favor, tente novamente com outra imagem.');
+      // Limpar o input de arquivo
+      e.target.value = '';
+    };
+    
+    reader.readAsDataURL(file);
+  };
+  
+  // Função auxiliar para mostrar o erro de imagem
+  const showImageError = (message: string) => {
+    setImageErrorModal({
+      isOpen: true,
+      message
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,6 +242,14 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
     }
   };
 
+  // Fechar o modal de erro de imagem
+  const closeImageErrorModal = () => {
+    setImageErrorModal({
+      isOpen: false,
+      message: ''
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -214,7 +295,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
               </div>
               <input 
                 type="file" 
-                accept="image/*" 
+                accept=".jpg,.jpeg,.png,.gif,.webp,image/jpeg,image/png,image/jpg,image/gif,image/webp" 
                 onChange={handleImageChange} 
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 aria-label="Enviar foto de perfil"
@@ -222,6 +303,10 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
               />
             </div>
             <span className="text-sm text-slate-500">Clique para enviar foto</span>
+            <span className="text-xs text-slate-400 text-center mt-1">
+              Formatos aceitos: JPG, JPEG, PNG, GIF, WebP.<br/>
+              Tamanho máximo: 2MB
+            </span>
           </div>
           
           <div className="space-y-4">
@@ -318,6 +403,31 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, contact, onClose, o
           </div>
         </form>
       </div>
+      
+      {/* Modal de erro de imagem */}
+      {imageErrorModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in">
+            <div className="flex items-center mb-4">
+              <AlertCircle className="text-red-500 mr-3" size={24} />
+              <h3 className="text-lg font-semibold">Arquivo inválido</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-slate-700">{imageErrorModal.message}</p>
+            </div>
+            
+            <div className="flex justify-center">
+              <button
+                onClick={closeImageErrorModal}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,18 +1,194 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Search, AlertTriangle, Loader2 } from 'lucide-react';
+import { UserPlus, Search, AlertTriangle, Loader2, CheckCircle2, AlertCircle, X, HelpCircle } from 'lucide-react';
 import ContactCard from './ContactCard';
 import ContactModal from './ContactModal';
 import { Contact } from '../types';
 import { fetchContacts, createContact, updateContact, deleteContact } from '../services/api';
 
+// Tipos para gerenciar os diferentes tipos de modais
+type ModalType = 'none' | 'success' | 'error' | 'confirmDelete' | 'confirmUpdate';
+
+interface NotificationModalProps {
+  type: ModalType;
+  title: string;
+  message: string;
+  onClose: () => void;
+  onConfirm?: () => void;
+  contactToDelete?: { id: number; name: string };
+  contactToUpdate?: { 
+    id: number; 
+    formData: FormData;
+    oldData?: Contact;
+  };
+}
+
+const NotificationModal: React.FC<NotificationModalProps> = ({ 
+  type, 
+  title, 
+  message, 
+  onClose, 
+  onConfirm, 
+  contactToDelete,
+  contactToUpdate
+}) => {
+  if (type === 'none') return null;
+
+  const isConfirmation = type === 'confirmDelete' || type === 'confirmUpdate';
+  
+  // Formatar data para exibição
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+  
+  // Formatar telefone para exibição
+  const formatPhone = (phone: string) => {
+    const numbers = phone.replace(/\D/g, '');
+    if (numbers.length === 11) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 3)} ${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+    }
+    return phone;
+  };
+  
+  // Extrair dados do FormData para comparação
+  const getUpdateDetails = () => {
+    if (!contactToUpdate?.formData || !contactToUpdate?.oldData) return null;
+    
+    const formData = contactToUpdate.formData;
+    const oldData = contactToUpdate.oldData;
+    
+    const newName = formData.get('name') as string;
+    const newEmail = formData.get('email') as string;
+    const newPhone = formData.get('phone') as string;
+    const newDateOfBirth = formData.get('dateOfBirth') as string;
+    const hasNewProfilePicture = formData.has('profilePicture');
+    
+    const isNameChanged = newName !== oldData.name;
+    const isEmailChanged = newEmail !== oldData.email;
+    const isPhoneChanged = newPhone !== oldData.phone.replace(/\D/g, '');
+    const isDateChanged = newDateOfBirth !== oldData.dateOfBirth.split('T')[0];
+    
+    return (
+      <div className="space-y-3 my-4 text-sm">
+        <p className="text-slate-500 italic mb-2">Resumo das alterações:</p>
+        
+        {isNameChanged && (
+          <div className="bg-blue-50 p-2 rounded">
+            <p className="font-medium">Nome:</p>
+            <p className="line-through text-slate-500">{oldData.name}</p>
+            <p className="text-blue-600">{newName}</p>
+          </div>
+        )}
+        
+        {isEmailChanged && (
+          <div className="bg-blue-50 p-2 rounded">
+            <p className="font-medium">E-mail:</p>
+            <p className="line-through text-slate-500">{oldData.email}</p>
+            <p className="text-blue-600">{newEmail}</p>
+          </div>
+        )}
+        
+        {isPhoneChanged && (
+          <div className="bg-blue-50 p-2 rounded">
+            <p className="font-medium">Telefone:</p>
+            <p className="line-through text-slate-500">{formatPhone(oldData.phone)}</p>
+            <p className="text-blue-600">{formatPhone(newPhone)}</p>
+          </div>
+        )}
+        
+        {isDateChanged && (
+          <div className="bg-blue-50 p-2 rounded">
+            <p className="font-medium">Data de Nascimento:</p>
+            <p className="line-through text-slate-500">{formatDate(oldData.dateOfBirth)}</p>
+            <p className="text-blue-600">{formatDate(newDateOfBirth)}</p>
+          </div>
+        )}
+        
+        {hasNewProfilePicture && (
+          <div className="bg-blue-50 p-2 rounded">
+            <p className="font-medium">Foto de Perfil:</p>
+            <p className="text-blue-600">Nova imagem selecionada</p>
+          </div>
+        )}
+        
+        {!isNameChanged && !isEmailChanged && !isPhoneChanged && !isDateChanged && !hasNewProfilePicture && (
+          <p className="italic text-slate-500">Nenhuma alteração identificada.</p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in">
+        <div className="flex items-center mb-4">
+          {type === 'success' && <CheckCircle2 className="text-green-500 mr-3" size={24} />}
+          {type === 'error' && <AlertCircle className="text-red-500 mr-3" size={24} />}
+          {type === 'confirmDelete' && <AlertCircle className="text-red-500 mr-3" size={24} />}
+          {type === 'confirmUpdate' && <HelpCircle className="text-amber-500 mr-3" size={24} />}
+          <h3 className="text-lg font-semibold">{title}</h3>
+        </div>
+        
+        <div className="mb-6">
+          <p className="text-slate-700">{message}</p>
+          
+          {type === 'confirmUpdate' && getUpdateDetails()}
+        </div>
+        
+        <div className={`flex ${isConfirmation ? 'justify-end' : 'justify-center'} space-x-3`}>
+          {isConfirmation && (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+            >
+              Cancelar
+            </button>
+          )}
+          <button
+            onClick={isConfirmation ? onConfirm : onClose}
+            className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+              type === 'confirmDelete' 
+                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
+                : type === 'confirmUpdate'
+                  ? 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+            } focus:outline-none focus:ring-2 focus:ring-offset-2`}
+          >
+            {isConfirmation ? 'Confirmar' : 'OK'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ContactList: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
+  const [contactIndices, setContactIndices] = useState<Map<number, number>>(new Map());
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estado para modais de notificação
+  const [notificationModal, setNotificationModal] = useState<{
+    type: ModalType;
+    title: string;
+    message: string;
+    contactToDelete?: { id: number; name: string };
+    contactToUpdate?: { 
+      id: number; 
+      formData: FormData;
+      oldData?: Contact;
+    };
+  }>({
+    type: 'none',
+    title: '',
+    message: ''
+  });
 
   useEffect(() => {
     loadContacts();
@@ -32,15 +208,19 @@ const ContactList: React.FC = () => {
 
   const loadContacts = async () => {
     try {
-      console.log('Carregando todos os contatos...');
       setLoading(true);
       setError(null);
       const data = await fetchContacts();
-      console.log(`Contatos carregados: ${data.length}`);
       setContacts(data);
       setFilteredContacts(data);
+      
+      // Criar mapa de índices para os contatos
+      const indices = new Map<number, number>();
+      data.forEach((contact, index) => {
+        indices.set(contact.id, index + 1);
+      });
+      setContactIndices(indices);
     } catch (err) {
-      console.error('Erro ao carregar contatos:', err);
       if (err instanceof Error) {
         setError(`Falha ao carregar contatos: ${err.message}`);
       } else {
@@ -53,14 +233,11 @@ const ContactList: React.FC = () => {
 
   const handleSearch = async (term: string) => {
     try {
-      console.log(`Buscando contatos com termo: "${term}"`);
       setLoading(true);
       setError(null);
       const data = await fetchContacts(term);
-      console.log(`Contatos encontrados: ${data.length}`);
       setFilteredContacts(data);
     } catch (err) {
-      console.error('Erro na busca:', err);
       if (err instanceof Error) {
         setError(`Falha ao buscar contatos: ${err.message}`);
       } else {
@@ -72,68 +249,153 @@ const ContactList: React.FC = () => {
   };
 
   const handleAddContact = () => {
-    console.log('Abrindo modal para adicionar novo contato');
     setSelectedContact(null);
     setIsModalOpen(true);
   };
 
   const handleEditContact = (contact: Contact) => {
-    console.log(`Abrindo modal para editar contato: ${contact.id} - ${contact.name}`);
     setSelectedContact(contact);
     setIsModalOpen(true);
   };
 
-  const handleDeleteContact = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este contato?')) {
-      try {
-        console.log(`Excluindo contato ID: ${id}`);
-        await deleteContact(id);
-        console.log('Contato excluído com sucesso');
-        setContacts(prevContacts => prevContacts.filter(contact => contact.id !== id));
-        setFilteredContacts(prevContacts => prevContacts.filter(contact => contact.id !== id));
-      } catch (err) {
-        console.error('Erro ao excluir contato:', err);
-        if (err instanceof Error) {
-          alert(`Erro: ${err.message}`);
-        } else {
-          alert('Falha ao excluir contato. Por favor, tente novamente.');
-        }
-      }
+  const handleConfirmDelete = (id: number, name: string) => {
+    setNotificationModal({
+      type: 'confirmDelete',
+      title: 'Confirmar exclusão',
+      message: `Tem certeza que deseja excluir o contato "${name}"? Esta ação não pode ser desfeita.`,
+      contactToDelete: { id, name }
+    });
+  };
+
+  const handleDeleteContact = async () => {
+    if (!notificationModal.contactToDelete) return;
+    
+    const { id, name } = notificationModal.contactToDelete;
+    
+    try {
+      await deleteContact(id);
+      
+      // Atualizar contatos e mapa de índices
+      const updatedContacts = contacts.filter(contact => contact.id !== id);
+      setContacts(updatedContacts);
+      setFilteredContacts(prevContacts => prevContacts.filter(contact => contact.id !== id));
+      
+      // Recalcular os índices após a exclusão
+      const newIndices = new Map<number, number>();
+      updatedContacts.forEach((contact, index) => {
+        newIndices.set(contact.id, index + 1);
+      });
+      setContactIndices(newIndices);
+      
+      // Mostrar notificação de sucesso após excluir
+      setNotificationModal({
+        type: 'success',
+        title: 'Contato excluído',
+        message: `O contato "${name}" foi excluído com sucesso.`
+      });
+      
+    } catch (err) {
+      // Mostrar notificação de erro
+      setNotificationModal({
+        type: 'error',
+        title: 'Erro ao excluir',
+        message: err instanceof Error 
+          ? `Erro: ${err.message}` 
+          : 'Falha ao excluir contato. Por favor, tente novamente.'
+      });
     }
   };
 
   const handleSaveContact = async (formData: FormData): Promise<void> => {
     try {
       if (selectedContact) {
-        console.log(`Atualizando contato ID: ${selectedContact.id}`);
-        const updatedContact = await updateContact(selectedContact.id, formData);
-        console.log('Contato atualizado com sucesso:', updatedContact);
-        setContacts(prevContacts => 
-          prevContacts.map(contact => 
-            contact.id === selectedContact.id ? updatedContact : contact
-          )
-        );
-        setFilteredContacts(prevContacts => 
-          prevContacts.map(contact => 
-            contact.id === selectedContact.id ? updatedContact : contact
-          )
-        );
+        // Para edição, mostrar modal de confirmação antes de salvar
+        setNotificationModal({
+          type: 'confirmUpdate',
+          title: 'Confirmar alterações',
+          message: `Deseja salvar as alterações no contato "${selectedContact.name}"?`,
+          contactToUpdate: {
+            id: selectedContact.id,
+            formData: formData,
+            oldData: selectedContact
+          }
+        });
       } else {
-        console.log('Criando novo contato');
+        // Para criação, salvar diretamente
         const newContact = await createContact(formData);
-        console.log('Contato criado com sucesso:', newContact);
-        setContacts(prevContacts => [...prevContacts, newContact]);
+        
+        // Atualizar contatos e adicionar novo índice
+        const updatedContacts = [...contacts, newContact];
+        setContacts(updatedContacts);
         setFilteredContacts(prevContacts => [...prevContacts, newContact]);
+        
+        // Adicionar o novo contato ao mapa de índices
+        const newIndices = new Map(contactIndices);
+        newIndices.set(newContact.id, updatedContacts.length);
+        setContactIndices(newIndices);
+        
+        setIsModalOpen(false);
+        
+        // Mostrar notificação de sucesso após criar
+        setNotificationModal({
+          type: 'success',
+          title: 'Contato adicionado',
+          message: `O contato "${newContact.name}" foi adicionado com sucesso.`
+        });
       }
-      setIsModalOpen(false);
     } catch (err) {
-      console.error('Erro ao salvar contato:', err);
-      if (err instanceof Error) {
-        throw new Error(err.message);
-      } else {
-        throw new Error('Falha ao salvar contato. Por favor, tente novamente.');
-      }
+      throw err; // Deixar o componente ContactModal lidar com este erro
     }
+  };
+
+  const handleConfirmUpdate = async () => {
+    if (!notificationModal.contactToUpdate) return;
+    
+    const { id, formData } = notificationModal.contactToUpdate;
+    
+    try {
+      const updatedContact = await updateContact(id, formData);
+      
+      // Atualizar a lista de contatos mantendo os índices
+      setContacts(prevContacts => 
+        prevContacts.map(contact => 
+          contact.id === id ? updatedContact : contact
+        )
+      );
+      
+      setFilteredContacts(prevContacts => 
+        prevContacts.map(contact => 
+          contact.id === id ? updatedContact : contact
+        )
+      );
+      
+      setIsModalOpen(false);
+      
+      // Mostrar notificação de sucesso após atualizar
+      setNotificationModal({
+        type: 'success',
+        title: 'Contato atualizado',
+        message: `O contato "${updatedContact.name}" foi atualizado com sucesso.`
+      });
+      
+    } catch (err) {
+      // Mostrar notificação de erro
+      setNotificationModal({
+        type: 'error',
+        title: 'Erro ao atualizar',
+        message: err instanceof Error 
+          ? `Erro: ${err.message}` 
+          : 'Falha ao atualizar contato. Por favor, tente novamente.'
+      });
+    }
+  };
+
+  const closeNotificationModal = () => {
+    setNotificationModal({
+      type: 'none',
+      title: '',
+      message: ''
+    });
   };
 
   return (
@@ -210,8 +472,9 @@ const ContactList: React.FC = () => {
               <ContactCard
                 key={contact.id}
                 contact={contact}
+                index={contactIndices.get(contact.id) || 0}
                 onEdit={handleEditContact}
-                onDelete={handleDeleteContact}
+                onDelete={handleConfirmDelete}
               />
             ))}
           </div>
@@ -223,6 +486,22 @@ const ContactList: React.FC = () => {
         contact={selectedContact}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveContact}
+      />
+      
+      <NotificationModal
+        type={notificationModal.type}
+        title={notificationModal.title}
+        message={notificationModal.message}
+        contactToDelete={notificationModal.contactToDelete}
+        contactToUpdate={notificationModal.contactToUpdate}
+        onClose={closeNotificationModal}
+        onConfirm={
+          notificationModal.type === 'confirmDelete' 
+            ? handleDeleteContact 
+            : notificationModal.type === 'confirmUpdate'
+              ? handleConfirmUpdate
+              : undefined
+        }
       />
     </div>
   );

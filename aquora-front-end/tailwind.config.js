@@ -5,8 +5,8 @@ export default {
     extend: {
       keyframes: {
         fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+          '0%': { opacity: 0, transform: 'scale(0.95) translateY(10px)' },
+          '100%': { opacity: 1, transform: 'scale(1) translateY(0)' },
         },
         slideUp: {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
@@ -14,7 +14,7 @@ export default {
         },
       },
       animation: {
-        fadeIn: 'fadeIn 0.3s ease-in-out',
+        'fade-in': 'fadeIn 0.3s ease-out forwards',
         slideUp: 'slideUp 0.3s ease-out',
       },
     },

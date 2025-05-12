@@ -4,11 +4,12 @@ import { Contact } from '../types';
 
 interface ContactCardProps {
   contact: Contact;
+  index: number;
   onEdit: (contact: Contact) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number, name: string) => void;
 }
 
-const ContactCard: React.FC<ContactCardProps> = ({ contact, onEdit, onDelete }) => {
+const ContactCard: React.FC<ContactCardProps> = ({ contact, index, onEdit, onDelete }) => {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -46,7 +47,7 @@ const ContactCard: React.FC<ContactCardProps> = ({ contact, onEdit, onDelete }) 
         <div className="p-6 md:p-4 w-full md:w-3/4 flex flex-col">
           <div className="flex justify-between items-start">
             <div>
-              <span className="text-xs font-semibold text-slate-500">ID: {contact.id}</span>
+              <span className="text-xs font-semibold text-slate-500">#{index}</span>
               <h2 className="text-xl font-bold text-slate-800 mt-1">{contact.name}</h2>
             </div>
             <div className="flex space-x-2">
@@ -58,7 +59,7 @@ const ContactCard: React.FC<ContactCardProps> = ({ contact, onEdit, onDelete }) 
                 <Edit size={18} />
               </button>
               <button 
-                onClick={() => onDelete(contact.id)} 
+                onClick={() => onDelete(contact.id, contact.name)} 
                 className="p-2 text-red-600 rounded-full hover:bg-red-50 transition-colors duration-200"
                 aria-label="Excluir contato"
               >
