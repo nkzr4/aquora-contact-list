@@ -43,6 +43,15 @@ Aquora Contact List é uma aplicação moderna para gerenciamento de contatos qu
 - Tailwind CSS
 - Vite
 
+## Boas Práticas Implementadas
+
+- **Código Limpo**: Funções pequenas e focadas, nomes descritivos
+- **Arquitetura em Camadas**: Backend e frontend bem estruturados
+- **Validação Completa**: Cliente e servidor validam dados
+- **Feedback Visual**: Indicadores para todas as ações
+- **Responsividade**: Interface adaptativa para todos dispositivos
+- **Segurança**: Proteção contra dados inválidos e sanitização
+
 ## Executando a Aplicação
 
 ### Com Docker (Recomendado)
@@ -79,30 +88,3 @@ cd aquora-front-end
 npm install
 npm run dev
 ```
-
-## Estrutura do Projeto
-
-```
-aquora-contact-list/
-├── aquora-back-end/         # API REST Java
-│   ├── src/                 # Código fonte
-│   └── Dockerfile           # Configuração Docker
-├── aquora-front-end/        # Interface React
-│   ├── src/                 # Código fonte
-│   └── Dockerfile           # Configuração Docker
-└── docker-compose.yml       # Orquestração Docker
-```
-
-## Boas Práticas Implementadas
-
-- **Código Limpo**: Funções pequenas e focadas, nomes descritivos
-- **Arquitetura em Camadas**: Backend e frontend bem estruturados
-- **Validação Completa**: Cliente e servidor validam dados
-- **Feedback Visual**: Indicadores para todas as ações
-- **Responsividade**: Interface adaptativa para todos dispositivos
-- **Segurança**: Proteção contra dados inválidos e sanitização
-
-## Screenshots
-
-![Tela Principal](https://via.placeholder.com/800x400?text=Tela+Principal)
-![Adição de Contato](https://via.placeholder.com/800x400?text=Adicao+de+Contato)
